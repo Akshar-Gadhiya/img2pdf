@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy } from '@dnd-kit/sortable';
 import { AnimatePresence } from 'framer-motion';
-import { Trash2, ArrowRight } from 'lucide-react';
+import { Trash2, ArrowRight, Plus } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -16,8 +16,17 @@ import { useAppContext } from '@/context/AppContext';
 import { SortableImageCard } from '@/components/preview/SortableImageCard';
 
 export function Preview() {
-  const { files, setFiles, settings, setSettings } = useAppContext();
+  const { files, setFiles, settings, setSettings, addFiles } = useAppContext();
   const navigate = useNavigate();
+  const isProcessing = files.some(f => f.status === 'pending');
+  const fileInputRef = useRef(null);
+
+  const handleAddMore = (e) => {
+    const selectedFiles = Array.from(e.target.files).filter(file => file.type.startsWith('image/'));
+    if (selectedFiles.length > 0) {
+      addFiles(selectedFiles);
+    }
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -64,10 +73,24 @@ export function Preview() {
               </CardTitle>
               <CardDescription>Drag and drop to reorder images.</CardDescription>
             </div>
-            <Button variant="ghost" onClick={() => setFiles([])} className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 font-bold transition-colors">
-              <Trash2 className="w-4 h-4 mr-2" />
-              Clear All
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" onClick={() => fileInputRef.current?.click()} className="text-muted-foreground hover:text-primary hover:bg-primary/10 font-bold transition-colors">
+                <Plus className="w-4 h-4 mr-2" strokeWidth={2.5} />
+                Add More
+              </Button>
+              <input 
+                type="file" 
+                ref={fileInputRef}
+                className="hidden" 
+                multiple 
+                accept="image/jpeg, image/png, image/webp"
+                onChange={handleAddMore}
+              />
+              <Button variant="ghost" onClick={() => setFiles([])} className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 font-bold transition-colors">
+                <Trash2 className="w-4 h-4 mr-2" />
+                Clear All
+              </Button>
+            </div>
           </CardHeader>
 
           <CardContent className="pt-6 pb-8 flex-1">
@@ -130,7 +153,13 @@ export function Preview() {
                 <Label className="text-sm font-semibold tracking-tight text-foreground/90">Margin</Label>
                 <span className="text-xs font-mono bg-primary/10 text-primary px-2.5 py-1 rounded-md font-bold">{settings.margin} px</span>
               </div>
-              <Slider value={[settings.margin]} max={100} step={1} onValueChange={(val) => setSettings({ ...settings, margin: val[0] })} className="py-2" />
+              <Slider 
+                value={[settings.margin]} 
+                max={100} 
+                step={1} 
+                onValueChange={(val) => setSettings({ ...settings, margin: Array.isArray(val) ? val[0] : val })} 
+                className="py-2" 
+              />
             </div>
 
             {/* Image Fit */}
@@ -152,11 +181,13 @@ export function Preview() {
 
         {/* Action Button */}
         <Button
-          className="w-full h-16 rounded-2xl text-lg font-bold shadow-xl hover:-translate-y-1 active:translate-y-0 transition-all shrink-0"
+          className="w-full h-16 rounded-2xl text-lg font-bold shadow-xl transition-all shrink-0"
           size="lg"
-          onClick={() => navigate('/download')}
+          disabled={isProcessing}
+          onClick={() => !isProcessing && navigate('/download')}
         >
-          Continue to Download <ArrowRight className="w-5 h-5 ml-2" />
+          {isProcessing ? 'Optimizing Images...' : 'Continue to Download'} 
+          {!isProcessing && <ArrowRight className="w-5 h-5 ml-2" />}
         </Button>
       </div>
     </div>

@@ -17,12 +17,6 @@ export function Header() {
           <NavLink to="/upload" className={({isActive}) => `text-sm font-semibold transition-colors hover:text-foreground ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>Upload</NavLink>
           <NavLink to="/preview" className={({isActive}) => `text-sm font-semibold transition-colors hover:text-foreground ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>Preview</NavLink>
         </nav>
-        <NavLink to="/settings">
-          <Button variant="ghost" size="sm" className="font-semibold text-muted-foreground hover:text-foreground">
-            <Settings2 className="w-4 h-4 sm:mr-2" />
-            <span className="hidden sm:inline">Settings</span>
-          </Button>
-        </NavLink>
         <Button className="hidden sm:flex font-bold shadow-sm rounded-full px-6">Sign In</Button>
       </div>
     </header>

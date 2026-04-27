@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { useAppContext } from '@/context/AppContext';
 
 export function Upload() {
-  const { files, setFiles } = useAppContext();
+  const { files, addFiles } = useAppContext();
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
@@ -27,31 +27,17 @@ export function Upload() {
     setIsDragging(false);
     const droppedFiles = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
     
-    const newFiles = droppedFiles.map(file => ({
-      id: Math.random().toString(36).substring(7),
-      file,
-      preview: URL.createObjectURL(file),
-      rotation: 0
-    }));
-    
-    if (newFiles.length > 0) {
-      setFiles(prev => [...prev, ...newFiles]);
+    if (droppedFiles.length > 0) {
+      addFiles(droppedFiles);
       navigate('/preview');
     }
-  }, [setFiles, navigate]);
+  }, [addFiles, navigate]);
 
   const handleFileInput = (e) => {
     const selectedFiles = Array.from(e.target.files).filter(file => file.type.startsWith('image/'));
     
-    const newFiles = selectedFiles.map(file => ({
-      id: Math.random().toString(36).substring(7),
-      file,
-      preview: URL.createObjectURL(file),
-      rotation: 0
-    }));
-    
-    if (newFiles.length > 0) {
-      setFiles(prev => [...prev, ...newFiles]);
+    if (selectedFiles.length > 0) {
+      addFiles(selectedFiles);
       navigate('/preview');
     }
   };

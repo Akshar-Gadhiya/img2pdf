@@ -51,18 +51,32 @@ export function SortableImageCard({ fileObj, onRemove, onRotate }) {
 
          {/* Image Preview */}
          <div className="aspect-square w-full rounded-md overflow-hidden bg-muted/30 border border-border/40 flex items-center justify-center relative group-hover:ring-1 group-hover:ring-primary/20 transition-all">
-            <img 
-              src={fileObj.preview} 
-              alt={fileObj.file.name} 
-              className="w-full h-full object-cover transition-transform duration-500 ease-in-out group-hover:scale-105"
-              style={{ transform: `rotate(${fileObj.rotation || 0}deg)` }}
-            />
+            {fileObj.status === 'pending' ? (
+              <div className="w-full h-full flex flex-col items-center justify-center bg-muted/50 animate-pulse">
+                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin opacity-50 mb-2"></div>
+                <span className="text-[10px] font-medium text-muted-foreground">Optimizing...</span>
+              </div>
+            ) : fileObj.status === 'error' ? (
+              <div className="w-full h-full flex items-center justify-center bg-red-50 text-red-500 text-xs font-semibold">
+                Error
+              </div>
+            ) : (
+              <img 
+                src={fileObj.preview} 
+                alt={fileObj.originalFile?.name || 'Image'} 
+                loading="lazy"
+                className="w-full h-full object-cover transition-transform duration-500 ease-in-out group-hover:scale-105"
+                style={{ transform: `rotate(${fileObj.rotation || 0}deg)` }}
+              />
+            )}
          </div>
       </CardContent>
       <CardFooter className="p-2.5 pt-0 flex justify-between items-center gap-2 mt-1">
          <div className="flex-1 min-w-0">
-           <p className="text-[11px] font-semibold text-foreground truncate">{fileObj.file.name}</p>
-           <p className="text-[10px] text-muted-foreground font-medium">{(fileObj.file.size / 1024 / 1024).toFixed(2)} MB</p>
+           <p className="text-[11px] font-semibold text-foreground truncate">{fileObj.originalFile?.name || 'Image'}</p>
+           <p className="text-[10px] text-muted-foreground font-medium">
+             {fileObj.file ? (fileObj.file.size / 1024 / 1024).toFixed(2) + ' MB' : '...'}
+           </p>
          </div>
          <Button 
            variant="secondary" 
