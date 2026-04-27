@@ -18,7 +18,7 @@ import { SortableImageCard } from '@/components/preview/SortableImageCard';
 export function Preview() {
   const { files, setFiles, settings, setSettings, addFiles } = useAppContext();
   const navigate = useNavigate();
-  const isProcessing = files.some(f => f.status === 'pending');
+  const isProcessing = files.some(f => f.status === 'pending' || f.status === 'processing_hq');
   const fileInputRef = useRef(null);
 
   const handleAddMore = (e) => {

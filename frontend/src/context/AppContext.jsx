@@ -14,55 +14,89 @@ export function AppProvider({ children }) {
   });
 
   const processingQueue = useRef([]);
+  const hqQueue = useRef([]);
   const isProcessingRef = useRef(false);
+  const isHqProcessingRef = useRef(false);
 
-  const processNextBatch = useCallback(async () => {
-    if (isProcessingRef.current || processingQueue.current.length === 0) return;
+  const processHqQueue = useCallback(async () => {
+    if (isHqProcessingRef.current || hqQueue.current.length === 0) return;
+    isHqProcessingRef.current = true;
     
-    isProcessingRef.current = true;
-    const batchSize = 5;
-    const batch = processingQueue.current.splice(0, batchSize);
+    // Process 2 at a time for HQ to keep memory safe
+    const batchSize = 2;
+    const batch = hqQueue.current.splice(0, batchSize);
 
-    const processedBatch = await Promise.all(batch.map(async (item) => {
+    const promises = batch.map(async (item) => {
       try {
         const compressedFile = await imageCompression(item.originalFile, {
           maxSizeMB: 1,
           maxWidthOrHeight: 1920,
           useWebWorker: true,
         });
-        
-        const thumbFile = await imageCompression(item.originalFile, {
-          maxSizeMB: 0.05,
-          maxWidthOrHeight: 400,
-          useWebWorker: true,
-        });
 
-        return {
-          id: item.id,
-          file: compressedFile,
-          preview: URL.createObjectURL(thumbFile),
-          status: 'done'
-        };
+        setFiles(prev => prev.map(f => 
+          f.id === item.id ? { ...f, file: compressedFile, status: 'done' } : f
+        ));
       } catch (e) {
-        console.error("Compression error:", e);
-        return { id: item.id, status: 'error' };
+        console.error("HQ Compression error:", e);
+        setFiles(prev => prev.map(f => f.id === item.id ? { ...f, status: 'error' } : f));
       }
-    }));
+    });
 
-    setFiles(prev => prev.map(f => {
-      const processed = processedBatch.find(p => p.id === f.id);
-      return processed ? { ...f, ...processed } : f;
-    }));
-
-    isProcessingRef.current = false;
+    await Promise.all(promises);
+    isHqProcessingRef.current = false;
     
-    if (processingQueue.current.length > 0) {
-      setTimeout(() => processNextBatch(), 50); // Yield to event loop
+    if (hqQueue.current.length > 0) {
+      setTimeout(() => processHqQueue(), 10);
     }
   }, []);
 
+  const processThumbQueue = useCallback(async () => {
+    if (isProcessingRef.current || processingQueue.current.length === 0) return;
+    isProcessingRef.current = true;
+    
+    // Process thumbnails very quickly (4 at a time)
+    const batchSize = 4;
+    const batch = processingQueue.current.splice(0, batchSize);
+
+    const promises = batch.map(async (item) => {
+      try {
+        const thumbFile = await imageCompression(item.originalFile, {
+          maxSizeMB: 0.02,
+          maxWidthOrHeight: 400,
+          useWebWorker: true,
+        });
+        
+        const previewUrl = URL.createObjectURL(thumbFile);
+        
+        setFiles(prev => prev.map(f => 
+          f.id === item.id ? { ...f, preview: previewUrl, status: 'processing_hq' } : f
+        ));
+        
+        // Push to HQ queue after thumbnail is ready
+        hqQueue.current.push(item);
+
+      } catch (e) {
+        console.error("Thumb error:", e);
+        setFiles(prev => prev.map(f => f.id === item.id ? { ...f, status: 'error' } : f));
+      }
+    });
+
+    await Promise.all(promises);
+    isProcessingRef.current = false;
+    
+    // Trigger HQ queue in the background
+    if (!isHqProcessingRef.current) {
+      setTimeout(() => processHqQueue(), 10);
+    }
+    
+    if (processingQueue.current.length > 0) {
+      setTimeout(() => processThumbQueue(), 10);
+    }
+  }, [processHqQueue]);
+
   const addFiles = useCallback((newFiles) => {
-    const fileObjects = newFiles.map(file => {
+    const fileObjects = newFiles.map((file) => {
       const id = Math.random().toString(36).substring(7);
       return {
         id,
@@ -75,10 +109,9 @@ export function AppProvider({ children }) {
     });
 
     setFiles(prev => [...prev, ...fileObjects]);
-    
     processingQueue.current.push(...fileObjects);
-    processNextBatch();
-  }, [processNextBatch]);
+    processThumbQueue();
+  }, [processThumbQueue]);
 
   return (
     <AppContext.Provider value={{
