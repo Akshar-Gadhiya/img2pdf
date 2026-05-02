@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UploadCloud, Plus, ArrowRight } from 'lucide-react';
+import { Plus, ArrowRight, Loader2, Image as ImageIcon, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { useAppContext } from '@/context/AppContext';
 export function Upload() {
   const { files, addFiles } = useAppContext();
   const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
@@ -28,8 +29,14 @@ export function Upload() {
     const droppedFiles = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
     
     if (droppedFiles.length > 0) {
-      addFiles(droppedFiles);
-      navigate('/preview');
+      setIsUploading(true);
+      // Give the browser time to paint the loading UI before heavy processing blocks the thread
+      setTimeout(() => {
+        addFiles(droppedFiles);
+        setTimeout(() => {
+          navigate('/preview');
+        }, 1200);
+      }, 100);
     }
   }, [addFiles, navigate]);
 
@@ -37,13 +44,63 @@ export function Upload() {
     const selectedFiles = Array.from(e.target.files).filter(file => file.type.startsWith('image/'));
     
     if (selectedFiles.length > 0) {
-      addFiles(selectedFiles);
-      navigate('/preview');
+      setIsUploading(true);
+      // Give the browser time to paint the loading UI before heavy processing blocks the thread
+      setTimeout(() => {
+        addFiles(selectedFiles);
+        setTimeout(() => {
+          navigate('/preview');
+        }, 1200);
+      }, 100);
     }
   };
 
+  if (isUploading) {
+    return (
+      <div className="flex-1 w-full max-w-3xl mx-auto px-4 py-12 flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="w-full bg-card/60 backdrop-blur-lg border border-border/50 shadow-2xl shadow-primary/20 rounded-[3rem] p-10 sm:p-16 flex flex-col items-center text-center space-y-10 animate-in zoom-in-95 duration-700 fade-in">
+          
+          <div className="relative w-40 h-40 flex items-center justify-center">
+            {/* Ambient glowing orb behind */}
+            <div className="absolute inset-0 bg-primary/20 rounded-full blur-[30px] animate-pulse"></div>
+            
+            {/* Spinning decorative rings */}
+            <div className="absolute inset-0 rounded-full border-t-4 border-r-4 border-primary border-dashed animate-spin" style={{ animationDuration: '3s' }}></div>
+            <div className="absolute inset-4 rounded-full border-b-4 border-l-4 border-primary/40 border-dotted animate-spin" style={{ animationDirection: 'reverse', animationDuration: '2s' }}></div>
+            
+            {/* Center icon */}
+            <div className="relative z-10 bg-background/80 p-5 rounded-3xl shadow-xl backdrop-blur-md border border-border/50">
+              <Sparkles className="w-12 h-12 text-primary animate-pulse" />
+            </div>
+            
+            {/* Floating small icons */}
+            <ImageIcon className="absolute -top-4 -right-4 w-8 h-8 text-primary/60 animate-bounce" style={{ animationDelay: '0.2s' }} />
+            <ImageIcon className="absolute -bottom-2 -left-6 w-10 h-10 text-primary/40 animate-bounce" style={{ animationDelay: '0.5s' }} />
+          </div>
+
+          <div className="space-y-4 max-w-md">
+            <h2 className="text-3xl sm:text-4xl font-black tracking-tight bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent">
+              Preparing Workspace
+            </h2>
+            <p className="text-lg text-muted-foreground font-medium">
+              Importing and optimizing your images for the best experience...
+            </p>
+          </div>
+
+          <div className="w-full max-w-md space-y-2">
+            <div className="w-full h-3 bg-muted/50 rounded-full overflow-hidden border border-border/50 relative">
+              <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary/50 via-primary to-primary/50 w-[200%] animate-[slide_2s_linear_infinite]" style={{ transform: 'translateX(-50%)' }}></div>
+            </div>
+            <p className="text-sm font-semibold text-primary animate-pulse">Just a moment...</p>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-12 flex flex-col items-center">
+    <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-12 flex flex-col items-center animate-in fade-in duration-500">
       <Card className="w-full border-0 shadow-2xl rounded-3xl overflow-hidden relative min-h-[500px] flex flex-col">
         <CardHeader className="text-center pb-2 mt-4 space-y-1">
           <CardTitle className="text-3xl font-bold tracking-tight">Upload Images</CardTitle>
@@ -102,3 +159,4 @@ export function Upload() {
     </div>
   );
 }
+

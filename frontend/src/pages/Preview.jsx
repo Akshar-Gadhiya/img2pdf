@@ -44,7 +44,15 @@ export function Preview() {
     }
   };
 
-  const removeFile = (id) => setFiles(prev => prev.filter(f => f.id !== id));
+  const removeFile = (id) => {
+    setFiles(prev => {
+      const toRemove = prev.find(f => f.id === id);
+      if (toRemove && toRemove.preview) {
+        try { URL.revokeObjectURL(toRemove.preview); } catch (e) { /* ignore */ }
+      }
+      return prev.filter(f => f.id !== id);
+    });
+  };
 
   const rotateFile = (id) => {
     setFiles(prev => prev.map(f => f.id === id ? { ...f, rotation: (f.rotation + 90) % 360 } : f));
@@ -86,7 +94,11 @@ export function Preview() {
                 accept="image/jpeg, image/png, image/webp"
                 onChange={handleAddMore}
               />
-              <Button variant="ghost" onClick={() => setFiles([])} className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 font-bold transition-colors">
+              <Button variant="ghost" onClick={() => {
+                // Revoke all preview URLs before clearing
+                files.forEach(f => { if (f.preview) { try { URL.revokeObjectURL(f.preview); } catch (e) { /* ignore */ } } });
+                setFiles([]);
+              }} className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 font-bold transition-colors">
                 <Trash2 className="w-4 h-4 mr-2" />
                 Clear All
               </Button>

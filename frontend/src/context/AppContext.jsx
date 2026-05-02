@@ -69,9 +69,16 @@ export function AppProvider({ children }) {
         
         const previewUrl = URL.createObjectURL(thumbFile);
         
-        setFiles(prev => prev.map(f => 
-          f.id === item.id ? { ...f, preview: previewUrl, status: 'processing_hq' } : f
-        ));
+        setFiles(prev => prev.map(f => {
+          if (f.id === item.id) {
+            // Revoke any previous preview to avoid memory leaks
+            if (f.preview) {
+              try { URL.revokeObjectURL(f.preview); } catch (e) { /* ignore */ }
+            }
+            return { ...f, preview: previewUrl, status: 'processing_hq' };
+          }
+          return f;
+        }));
         
         // Push to HQ queue after thumbnail is ready
         hqQueue.current.push(item);
